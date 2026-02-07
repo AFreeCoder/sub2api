@@ -1,0 +1,42 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: root
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+
+            APP_DIR="/opt/sub2api"
+
+            # 首次部署：克隆仓库
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone https://github.com/AFreeCoder/sub2api.git "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+
+            # 拉取最新代码
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 构建并重启服务（从源码构建镜像）
+            cd deploy
+            docker compose -f docker-compose.deploy.yml up -d --build
+
+            # 清理悬空镜像
+            docker image prune -f
+
+            echo "部署完成！"
