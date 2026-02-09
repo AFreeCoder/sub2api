@@ -337,6 +337,22 @@ export interface OpsConcurrencyStatsResponse {
   timestamp?: string
 }
 
+export interface UserConcurrencyInfo {
+  user_id: number
+  user_email: string
+  username: string
+  current_in_use: number
+  max_capacity: number
+  load_percentage: number
+  waiting_in_queue: number
+}
+
+export interface OpsUserConcurrencyStatsResponse {
+  enabled: boolean
+  user: Record<string, UserConcurrencyInfo>
+  timestamp?: string
+}
+
 export async function getConcurrencyStats(platform?: string, groupId?: number | null): Promise<OpsConcurrencyStatsResponse> {
   const params: Record<string, any> = {}
   if (platform) {
@@ -350,12 +366,16 @@ export async function getConcurrencyStats(platform?: string, groupId?: number | 
   return data
 }
 
+export async function getUserConcurrencyStats(): Promise<OpsUserConcurrencyStatsResponse> {
+  const { data } = await apiClient.get<OpsUserConcurrencyStatsResponse>('/admin/ops/user-concurrency')
+  return data
+}
+
 export interface PlatformAvailability {
   platform: string
   total_accounts: number
   available_count: number
   rate_limit_count: number
-  scope_rate_limit_count?: Record<string, number>
   error_count: number
 }
 
@@ -366,7 +386,6 @@ export interface GroupAvailability {
   total_accounts: number
   available_count: number
   rate_limit_count: number
-  scope_rate_limit_count?: Record<string, number>
   error_count: number
 }
 
@@ -381,7 +400,6 @@ export interface AccountAvailability {
   is_rate_limited: boolean
   rate_limit_reset_at?: string
   rate_limit_remaining_sec?: number
-  scope_rate_limits?: Record<string, number>
   is_overloaded: boolean
   overload_until?: string
   overload_remaining_sec?: number
@@ -1171,6 +1189,7 @@ export const opsAPI = {
   getErrorTrend,
   getErrorDistribution,
   getConcurrencyStats,
+  getUserConcurrencyStats,
   getAccountAvailabilityStats,
   getRealtimeTrafficSummary,
   subscribeQPS,

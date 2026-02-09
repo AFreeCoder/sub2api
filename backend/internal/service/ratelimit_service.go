@@ -62,6 +62,32 @@ func (s *RateLimitService) SetTokenCacheInvalidator(invalidator TokenCacheInvali
 	s.tokenCacheInvalidator = invalidator
 }
 
+// ErrorPolicyResult 表示错误策略检查的结果
+type ErrorPolicyResult int
+
+const (
+	ErrorPolicyNone            ErrorPolicyResult = iota // 未命中任何策略，继续默认逻辑
+	ErrorPolicySkipped                                  // 自定义错误码开启但未命中，跳过处理
+	ErrorPolicyMatched                                  // 自定义错误码命中，应停止调度
+	ErrorPolicyTempUnscheduled                          // 临时不可调度规则命中
+)
+
+// CheckErrorPolicy 检查自定义错误码和临时不可调度规则。
+// 自定义错误码开启时覆盖后续所有逻辑（包括临时不可调度）。
+func (s *RateLimitService) CheckErrorPolicy(ctx context.Context, account *Account, statusCode int, responseBody []byte) ErrorPolicyResult {
+	if account.IsCustomErrorCodesEnabled() {
+		if account.ShouldHandleErrorCode(statusCode) {
+			return ErrorPolicyMatched
+		}
+		slog.Info("account_error_code_skipped", "account_id", account.ID, "status_code", statusCode)
+		return ErrorPolicySkipped
+	}
+	if s.tryTempUnschedulable(ctx, account, statusCode, responseBody) {
+		return ErrorPolicyTempUnscheduled
+	}
+	return ErrorPolicyNone
+}
+
 // HandleUpstreamError 处理上游错误响应，标记账号状态
 // 返回是否应该停止该账号的调度
 func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Account, statusCode int, headers http.Header, responseBody []byte) (shouldDisable bool) {
@@ -387,14 +413,6 @@ func (s *RateLimitService) handle429(ctx context.Context, account *Account, head
 
 		// 没有重置时间，使用默认5分钟
 		resetAt := time.Now().Add(5 * time.Minute)
-		if s.shouldScopeClaudeSonnetRateLimit(account, responseBody) {
-			if err := s.accountRepo.SetModelRateLimit(ctx, account.ID, modelRateLimitScopeClaudeSonnet, resetAt); err != nil {
-				slog.Warn("model_rate_limit_set_failed", "account_id", account.ID, "scope", modelRateLimitScopeClaudeSonnet, "error", err)
-			} else {
-				slog.Info("account_model_rate_limited", "account_id", account.ID, "scope", modelRateLimitScopeClaudeSonnet, "reset_at", resetAt)
-			}
-			return
-		}
 		slog.Warn("rate_limit_no_reset_time", "account_id", account.ID, "platform", account.Platform, "using_default", "5m")
 		if err := s.accountRepo.SetRateLimited(ctx, account.ID, resetAt); err != nil {
 			slog.Warn("rate_limit_set_failed", "account_id", account.ID, "error", err)
@@ -407,14 +425,6 @@ func (s *RateLimitService) handle429(ctx context.Context, account *Account, head
 	if err != nil {
 		slog.Warn("rate_limit_reset_parse_failed", "reset_timestamp", resetTimestamp, "error", err)
 		resetAt := time.Now().Add(5 * time.Minute)
-		if s.shouldScopeClaudeSonnetRateLimit(account, responseBody) {
-			if err := s.accountRepo.SetModelRateLimit(ctx, account.ID, modelRateLimitScopeClaudeSonnet, resetAt); err != nil {
-				slog.Warn("model_rate_limit_set_failed", "account_id", account.ID, "scope", modelRateLimitScopeClaudeSonnet, "error", err)
-			} else {
-				slog.Info("account_model_rate_limited", "account_id", account.ID, "scope", modelRateLimitScopeClaudeSonnet, "reset_at", resetAt)
-			}
-			return
-		}
 		if err := s.accountRepo.SetRateLimited(ctx, account.ID, resetAt); err != nil {
 			slog.Warn("rate_limit_set_failed", "account_id", account.ID, "error", err)
 		}
@@ -422,15 +432,6 @@ func (s *RateLimitService) handle429(ctx context.Context, account *Account, head
 	}
 
 	resetAt := time.Unix(ts, 0)
-
-	if s.shouldScopeClaudeSonnetRateLimit(account, responseBody) {
-		if err := s.accountRepo.SetModelRateLimit(ctx, account.ID, modelRateLimitScopeClaudeSonnet, resetAt); err != nil {
-			slog.Warn("model_rate_limit_set_failed", "account_id", account.ID, "scope", modelRateLimitScopeClaudeSonnet, "error", err)
-			return
-		}
-		slog.Info("account_model_rate_limited", "account_id", account.ID, "scope", modelRateLimitScopeClaudeSonnet, "reset_at", resetAt)
-		return
-	}
 
 	// 标记限流状态
 	if err := s.accountRepo.SetRateLimited(ctx, account.ID, resetAt); err != nil {
@@ -446,17 +447,6 @@ func (s *RateLimitService) handle429(ctx context.Context, account *Account, head
 	}
 
 	slog.Info("account_rate_limited", "account_id", account.ID, "reset_at", resetAt)
-}
-
-func (s *RateLimitService) shouldScopeClaudeSonnetRateLimit(account *Account, responseBody []byte) bool {
-	if account == nil || account.Platform != PlatformAnthropic {
-		return false
-	}
-	msg := strings.ToLower(strings.TrimSpace(extractUpstreamErrorMessage(responseBody)))
-	if msg == "" {
-		return false
-	}
-	return strings.Contains(msg, "sonnet")
 }
 
 // calculateOpenAI429ResetTime 从 OpenAI 429 响应头计算正确的重置时间
@@ -632,6 +622,10 @@ func (s *RateLimitService) ClearTempUnschedulable(ctx context.Context, accountID
 		if err := s.tempUnschedCache.DeleteTempUnsched(ctx, accountID); err != nil {
 			slog.Warn("temp_unsched_cache_delete_failed", "account_id", accountID, "error", err)
 		}
+	}
+	// 同时清除模型级别限流
+	if err := s.accountRepo.ClearModelRateLimits(ctx, accountID); err != nil {
+		slog.Warn("clear_model_rate_limits_on_temp_unsched_reset_failed", "account_id", accountID, "error", err)
 	}
 	return nil
 }

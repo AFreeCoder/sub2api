@@ -115,6 +115,7 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 		MCPXMLInject:         g.MCPXMLInject,
 		SupportedModelScopes: g.SupportedModelScopes,
 		AccountCount:         g.AccountCount,
+		SortOrder:            g.SortOrder,
 	}
 	if len(g.AccountGroups) > 0 {
 		out.AccountGroups = make([]AccountGroup, 0, len(g.AccountGroups))
@@ -209,17 +210,6 @@ func AccountFromServiceShallow(a *service.Account) *Account {
 		if a.IsSessionIDMaskingEnabled() {
 			enabled := true
 			out.EnableSessionIDMasking = &enabled
-		}
-	}
-
-	if scopeLimits := a.GetAntigravityScopeRateLimits(); len(scopeLimits) > 0 {
-		out.ScopeRateLimits = make(map[string]ScopeRateLimitInfo, len(scopeLimits))
-		now := time.Now()
-		for scope, remainingSec := range scopeLimits {
-			out.ScopeRateLimits[scope] = ScopeRateLimitInfo{
-				ResetAt:      now.Add(time.Duration(remainingSec) * time.Second),
-				RemainingSec: remainingSec,
-			}
 		}
 	}
 

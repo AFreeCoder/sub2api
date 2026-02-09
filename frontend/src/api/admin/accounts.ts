@@ -327,11 +327,34 @@ export async function getAvailableModels(id: number): Promise<ClaudeModel[]> {
   return data
 }
 
+export interface CRSPreviewAccount {
+  crs_account_id: string
+  kind: string
+  name: string
+  platform: string
+  type: string
+}
+
+export interface PreviewFromCRSResult {
+  new_accounts: CRSPreviewAccount[]
+  existing_accounts: CRSPreviewAccount[]
+}
+
+export async function previewFromCrs(params: {
+  base_url: string
+  username: string
+  password: string
+}): Promise<PreviewFromCRSResult> {
+  const { data } = await apiClient.post<PreviewFromCRSResult>('/admin/accounts/sync/crs/preview', params)
+  return data
+}
+
 export async function syncFromCrs(params: {
   base_url: string
   username: string
   password: string
   sync_proxies?: boolean
+  selected_account_ids?: string[]
 }): Promise<{
   created: number
   updated: number
@@ -345,7 +368,19 @@ export async function syncFromCrs(params: {
     error?: string
   }>
 }> {
-  const { data } = await apiClient.post('/admin/accounts/sync/crs', params)
+  const { data } = await apiClient.post<{
+    created: number
+    updated: number
+    skipped: number
+    failed: number
+    items: Array<{
+      crs_account_id: string
+      kind: string
+      name: string
+      action: string
+      error?: string
+    }>
+  }>('/admin/accounts/sync/crs', params)
   return data
 }
 
@@ -387,6 +422,37 @@ export async function importData(payload: {
   return data
 }
 
+/**
+ * Get Antigravity default model mapping from backend
+ * @returns Default model mapping (from -> to)
+ */
+export async function getAntigravityDefaultModelMapping(): Promise<Record<string, string>> {
+  const { data } = await apiClient.get<Record<string, string>>(
+    '/admin/accounts/antigravity/default-model-mapping'
+  )
+  return data
+}
+
+/**
+ * Refresh OpenAI token using refresh token
+ * @param refreshToken - The refresh token
+ * @param proxyId - Optional proxy ID
+ * @returns Token information including access_token, email, etc.
+ */
+export async function refreshOpenAIToken(
+  refreshToken: string,
+  proxyId?: number | null
+): Promise<Record<string, unknown>> {
+  const payload: { refresh_token: string; proxy_id?: number } = {
+    refresh_token: refreshToken
+  }
+  if (proxyId) {
+    payload.proxy_id = proxyId
+  }
+  const { data } = await apiClient.post<Record<string, unknown>>('/admin/openai/refresh-token', payload)
+  return data
+}
+
 export const accountsAPI = {
   list,
   getById,
@@ -407,12 +473,15 @@ export const accountsAPI = {
   getAvailableModels,
   generateAuthUrl,
   exchangeCode,
+  refreshOpenAIToken,
   batchCreate,
   batchUpdateCredentials,
   bulkUpdate,
+  previewFromCrs,
   syncFromCrs,
   exportData,
-  importData
+  importData,
+  getAntigravityDefaultModelMapping
 }
 
 export default accountsAPI

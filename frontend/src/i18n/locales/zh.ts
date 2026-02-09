@@ -8,30 +8,102 @@ export default {
     switchToDark: '切换到深色模式',
     dashboard: '控制台',
     login: '登录',
-    getStarted: '开始使用',
+    getStarted: '立即开始',
     goToDashboard: '进入控制台',
+    // 新增：面向用户的价值主张
+    heroSubtitle: '一个密钥，畅用多个 AI 模型',
+    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
     tags: {
       subscriptionToApi: '订阅转 API',
-      stickySession: '粘性会话',
-      realtimeBilling: '实时计费'
+      stickySession: '会话保持',
+      realtimeBilling: '按量计费'
+    },
+    // 用户痛点区块
+    painPoints: {
+      title: '你是否也遇到这些问题？',
+      items: {
+        expensive: {
+          title: '订阅费用高',
+          desc: '每个 AI 服务都要单独订阅，每月支出越来越多'
+        },
+        complex: {
+          title: '多账号难管理',
+          desc: '不同平台的账号、密钥分散各处，管理起来很麻烦'
+        },
+        unstable: {
+          title: '服务不稳定',
+          desc: '单一账号容易触发限制，影响正常使用'
+        },
+        noControl: {
+          title: '用量无法控制',
+          desc: '不知道钱花在哪了，也无法限制团队成员的使用'
+        }
+      }
+    },
+    // 解决方案区块
+    solutions: {
+      title: '我们帮你解决',
+      subtitle: '简单三步，开始省心使用 AI'
     },
     features: {
-      unifiedGateway: '统一 API 网关',
-      unifiedGatewayDesc: '将 Claude 订阅转换为 API 接口，通过标准 /v1/messages 接口访问 AI 能力。',
-      multiAccount: '多账号池',
-      multiAccountDesc: '智能负载均衡管理多个上游账号，支持 OAuth 和 API Key 认证。',
-      balanceQuota: '余额与配额',
-      balanceQuotaDesc: '基于 Token 的精确计费和用量追踪，支持配额管理和兑换码充值。'
+      unifiedGateway: '一键接入',
+      unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
+      multiAccount: '稳定可靠',
+      multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
+      balanceQuota: '用多少付多少',
+      balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
+    },
+    // 优势对比
+    comparison: {
+      title: '为什么选择我们？',
+      headers: {
+        feature: '对比项',
+        official: '官方订阅',
+        us: '本平台'
+      },
+      items: {
+        pricing: {
+          feature: '付费方式',
+          official: '固定月费，用不完也付',
+          us: '按量付费，用多少付多少'
+        },
+        models: {
+          feature: '模型选择',
+          official: '单一服务商',
+          us: '多模型随意切换'
+        },
+        management: {
+          feature: '账号管理',
+          official: '每个服务单独管理',
+          us: '统一密钥，一站管理'
+        },
+        stability: {
+          feature: '服务稳定性',
+          official: '单账号易触发限制',
+          us: '多账号池，自动切换'
+        },
+        control: {
+          feature: '用量控制',
+          official: '无法限制',
+          us: '可设配额、查明细'
+        }
+      }
     },
     providers: {
-      title: '支持的服务商',
-      description: 'AI 服务的统一 API 接口',
+      title: '已支持的 AI 模型',
+      description: '一个 API，多种选择',
       supported: '已支持',
       soon: '即将推出',
       claude: 'Claude',
       gemini: 'Gemini',
       antigravity: 'Antigravity',
       more: '更多'
+    },
+    // CTA 区块
+    cta: {
+      title: '准备好开始了吗？',
+      description: '注册即可获得免费试用额度，体验一站式 AI 服务',
+      button: '免费注册'
     },
     footer: {
       allRightsReserved: '保留所有权利。'
@@ -1027,6 +1099,10 @@ export default {
       createGroup: '创建分组',
       editGroup: '编辑分组',
       deleteGroup: '删除分组',
+      sortOrder: '排序',
+      sortOrderHint: '拖拽分组调整显示顺序，排在前面的分组会优先显示',
+      sortOrderUpdated: '排序已更新',
+      failedToUpdateSortOrder: '更新排序失败',
       deleteConfirm: "确定要删除分组 '{name}' 吗？所有关联的 API 密钥将不再属于任何分组。",
       deleteConfirmSubscription:
         "确定要删除订阅分组 '{name}' 吗？此操作会让所有绑定此订阅的用户的 API Key 失效，并删除所有相关的订阅记录。此操作无法撤销。",
@@ -1321,9 +1397,22 @@ export default {
       syncResult: '同步结果',
       syncResultSummary: '创建 {created}，更新 {updated}，跳过 {skipped}，失败 {failed}',
       syncErrors: '错误/跳过详情',
-      syncCompleted: '同步完成：创建 {created}，更新 {updated}',
-      syncCompletedWithErrors: '同步完成但有错误：失败 {failed}（创建 {created}，更新 {updated}）',
+      syncCompleted: '同步完成：创建 {created}，更新 {updated}，跳过 {skipped}',
+      syncCompletedWithErrors: '同步完成但有错误：失败 {failed}（创建 {created}，更新 {updated}，跳过 {skipped}）',
       syncFailed: '同步失败',
+      crsPreview: '预览',
+      crsPreviewing: '预览中...',
+      crsPreviewFailed: '预览失败',
+      crsExistingAccounts: '将自动更新的已有账号',
+      crsNewAccounts: '新账号（可选择）',
+      crsSelectAll: '全选',
+      crsSelectNone: '全不选',
+      crsNoNewAccounts: '所有 CRS 账号均已同步。',
+      crsWillUpdate: '将更新 {count} 个已有账号。',
+      crsSelectedCount: '已选择 {count} 个新账号',
+      crsUpdateBehaviorNote:
+        '已有账号仅同步 CRS 返回的字段，缺失字段保持原值；凭据按键合并，不会清空未下发的键；未勾选"同步代理"时保留原有代理。',
+      crsBack: '返回',
       editAccount: '编辑账号',
       deleteAccount: '删除账号',
       deleteConfirmMessage: "确定要删除账号 '{name}' 吗？",
@@ -1404,6 +1493,7 @@ export default {
         googleOauth: 'Google OAuth',
         codeAssist: 'Code Assist',
         antigravityOauth: 'Antigravity OAuth',
+        antigravityApikey: '通过 Base URL + API Key 连接',
         upstream: '对接上游',
         upstreamDesc: '通过 Base URL + API Key 连接上游',
         api_key: 'API Key',
@@ -1420,7 +1510,7 @@ export default {
         overloaded: '过载中',
         tempUnschedulable: '临时不可调度',
         rateLimitedUntil: '限流中，重置时间：{time}',
-        scopeRateLimitedUntil: '{scope} 限流中，重置时间：{time}',
+        modelRateLimitedUntil: '{model} 限流至 {time}',
         overloadedUntil: '负载过重，重置时间：{time}',
         viewTempUnschedDetails: '查看临时不可调度详情'
       },
@@ -1592,6 +1682,8 @@ export default {
       actualModel: '实际模型',
       addMapping: '添加映射',
       mappingExists: '模型 {model} 的映射已存在',
+      wildcardOnlyAtEnd: '通配符 * 只能放在末尾',
+      targetNoWildcard: '目标模型不能包含通配符 *',
       searchModels: '搜索模型...',
       noMatchingModels: '没有匹配的模型',
       fillRelatedModels: '填入相关模型',
@@ -1680,7 +1772,7 @@ export default {
       // Upstream type
       upstream: {
         baseUrl: '上游 Base URL',
-        baseUrlHint: '上游 Antigravity 服务的地址，例如：https://s.konstants.xyz',
+        baseUrlHint: '上游 Antigravity 服务的地址，例如：https://cloudcode-pa.googleapis.com',
         apiKey: '上游 API Key',
         apiKeyHint: '上游服务的 API Key',
         pleaseEnterBaseUrl: '请输入上游 Base URL',
@@ -1729,6 +1821,9 @@ export default {
         cookieAuthFailed: 'Cookie 授权失败',
         keyAuthFailed: '密钥 {index}: {error}',
         successCreated: '成功创建 {count} 个账号',
+        batchSuccess: '成功创建 {count} 个账号',
+        batchPartialSuccess: '部分成功：{success} 个成功，{failed} 个失败',
+        batchFailed: '批量创建失败',
         // OpenAI specific
         openai: {
           title: 'OpenAI 账户授权',
@@ -1745,7 +1840,14 @@ export default {
           authCode: '授权链接或 Code',
           authCodePlaceholder:
             '方式1：复制完整的链接\n(http://localhost:xxx/auth/callback?code=...)\n方式2：仅复制 code 参数的值',
-          authCodeHint: '您可以直接复制整个链接或仅复制 code 参数值，系统会自动识别'
+          authCodeHint: '您可以直接复制整个链接或仅复制 code 参数值，系统会自动识别',
+          // Refresh Token auth
+          refreshTokenAuth: '手动输入 RT',
+          refreshTokenDesc: '输入您已有的 OpenAI Refresh Token，支持批量输入（每行一个），系统将自动验证并创建账号。',
+          refreshTokenPlaceholder: '粘贴您的 OpenAI Refresh Token...\n支持多个，每行一个',
+          validating: '验证中...',
+          validateAndCreate: '验证并创建账号',
+          pleaseEnterRefreshToken: '请输入 Refresh Token'
         },
         // Gemini specific
         gemini: {
@@ -2022,8 +2124,6 @@ export default {
       deleteConfirmMessage: "确定要删除代理 '{name}' 吗？",
       testProxy: '测试代理',
       dataImport: '导入',
-      dataImportShort: '导入',
-      dataExportShort: '导出',
       dataExportSelected: '导出选中',
       dataImportTitle: '导入代理',
       dataImportHint: '上传代理导出的 JSON 文件以批量导入代理。',
@@ -3140,12 +3240,15 @@ export default {
         byPlatform: '按平台',
         byGroup: '按分组',
         byAccount: '按账号',
+        byUser: '按用户',
+        showByUserTooltip: '切换用户视图，显示每个用户的并发使用情况',
+        switchToUser: '切换到用户视图',
+        switchToPlatform: '切换回平台视图',
         totalRows: '共 {count} 项',
         disabledHint: '已在设置中关闭实时监控。',
         empty: '暂无数据',
         queued: '队列 {count}',
         rateLimited: '限流 {count}',
-        scopeRateLimitedTooltip: '{scope} 限流中 ({count} 个账号)',
         errorAccounts: '异常 {count}',
         loadFailed: '加载并发数据失败'
       },

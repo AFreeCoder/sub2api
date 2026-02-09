@@ -66,6 +66,9 @@ func (m *mockAccountRepoForGemini) Create(ctx context.Context, account *Account)
 func (m *mockAccountRepoForGemini) GetByCRSAccountID(ctx context.Context, crsAccountID string) (*Account, error) {
 	return nil, nil
 }
+func (m *mockAccountRepoForGemini) ListCRSAccountIDs(ctx context.Context) (map[string]int64, error) {
+	return nil, nil
+}
 func (m *mockAccountRepoForGemini) Update(ctx context.Context, account *Account) error { return nil }
 func (m *mockAccountRepoForGemini) Delete(ctx context.Context, id int64) error         { return nil }
 func (m *mockAccountRepoForGemini) List(ctx context.Context, params pagination.PaginationParams) ([]Account, *pagination.PaginationResult, error) {
@@ -131,9 +134,6 @@ func (m *mockAccountRepoForGemini) ListSchedulableByGroupIDAndPlatforms(ctx cont
 	return m.ListSchedulableByPlatforms(ctx, platforms)
 }
 func (m *mockAccountRepoForGemini) SetRateLimited(ctx context.Context, id int64, resetAt time.Time) error {
-	return nil
-}
-func (m *mockAccountRepoForGemini) SetAntigravityQuotaScopeLimit(ctx context.Context, id int64, scope AntigravityQuotaScope, resetAt time.Time) error {
 	return nil
 }
 func (m *mockAccountRepoForGemini) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time) error {
@@ -224,6 +224,10 @@ func (m *mockGroupRepoForGemini) BindAccountsToGroup(ctx context.Context, groupI
 
 func (m *mockGroupRepoForGemini) GetAccountIDsByGroupIDs(ctx context.Context, groupIDs []int64) ([]int64, error) {
 	return nil, nil
+}
+
+func (m *mockGroupRepoForGemini) UpdateSortOrders(ctx context.Context, updates []GroupSortOrderUpdate) error {
+	return nil
 }
 
 var _ GroupRepository = (*mockGroupRepoForGemini)(nil)
@@ -880,13 +884,46 @@ func TestGeminiMessagesCompatService_isModelSupportedByAccount(t *testing.T) {
 		{
 			name:     "Antigravity平台-支持claude模型",
 			account:  &Account{Platform: PlatformAntigravity},
-			model:    "claude-3-5-sonnet-20241022",
+			model:    "claude-sonnet-4-5",
 			expected: true,
 		},
 		{
 			name:     "Antigravity平台-不支持gpt模型",
 			account:  &Account{Platform: PlatformAntigravity},
 			model:    "gpt-4",
+			expected: false,
+		},
+		{
+			name:     "Antigravity平台-空模型允许",
+			account:  &Account{Platform: PlatformAntigravity},
+			model:    "",
+			expected: true,
+		},
+		{
+			name: "Antigravity平台-自定义映射-支持自定义模型",
+			account: &Account{
+				Platform: PlatformAntigravity,
+				Credentials: map[string]any{
+					"model_mapping": map[string]any{
+						"my-custom-model": "upstream-model",
+						"gpt-4o":          "some-model",
+					},
+				},
+			},
+			model:    "my-custom-model",
+			expected: true,
+		},
+		{
+			name: "Antigravity平台-自定义映射-不在映射中的模型不支持",
+			account: &Account{
+				Platform: PlatformAntigravity,
+				Credentials: map[string]any{
+					"model_mapping": map[string]any{
+						"my-custom-model": "upstream-model",
+					},
+				},
+			},
+			model:    "claude-sonnet-4-5",
 			expected: false,
 		},
 		{
