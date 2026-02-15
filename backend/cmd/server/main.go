@@ -70,7 +70,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		log.Printf("Sub2API %s (commit: %s, built: %s)\n", Version, Commit, Date)
+		log.Printf("APIPool %s (commit: %s, built: %s)\n", Version, Commit, Date)
 		return
 	}
 
@@ -120,7 +120,7 @@ func runSetupServer() {
 	// This allows users to run setup on a different address if needed
 	addr := config.GetServerAddress()
 	log.Printf("Setup wizard available at http://%s", addr)
-	log.Println("Complete the setup wizard to configure Sub2API")
+	log.Println("Complete the setup wizard to configure APIPool")
 
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("Failed to start setup server: %v", err)

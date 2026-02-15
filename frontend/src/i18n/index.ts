@@ -2,7 +2,7 @@ import { createI18n } from 'vue-i18n'
 import en from './locales/en'
 import zh from './locales/zh'
 
-const LOCALE_KEY = 'sub2api_locale'
+const LOCALE_KEY = 'apipool_locale'
 
 function getDefaultLocale(): string {
   // Check localStorage first

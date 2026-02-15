@@ -1,4 +1,4 @@
-# sub2api 项目开发指南
+# APIPool 项目开发指南
 
 > 本文档记录项目环境配置、常见坑点和注意事项，供 Claude Code 和团队成员参考。
 
@@ -6,39 +6,78 @@
 
 | 项目 | 说明 |
 |------|------|
-| **上游仓库** | Wei-Shaw/sub2api |
-| **Fork 仓库** | bayma888/sub2api-bmai |
-| **技术栈** | Go 后端 (Ent ORM + Gin) + Vue3 前端 (pnpm) |
-| **数据库** | PostgreSQL 16 + Redis |
-| **包管理** | 后端: go modules, 前端: **pnpm**（不是 npm） |
+| **品牌名** | APIPool（上游原名 Sub2API） |
+| **上游仓库** | [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) |
+| **自有仓库** | [AFreeCoder/apipool](https://github.com/AFreeCoder/apipool)（private） |
+| **技术栈** | Go 后端 (Ent ORM + Gin) + Vue 3 前端 (TypeScript + Vite + Pinia) |
+| **数据库** | PostgreSQL 16 + Redis 7 |
+| **包管理** | 后端: go modules / 前端: npm（上游 CI 用 pnpm） |
 
-## 二、本地环境配置
+## 二、本地开发环境（macOS）
 
-### PostgreSQL 16 (Windows 服务)
+### Docker 基础服务
 
-| 配置项 | 值 |
-|--------|-----|
-| 端口 | 5432 |
-| psql 路径 | `C:\Program Files\PostgreSQL\16\bin\psql.exe` |
-| pg_hba.conf | `C:\Program Files\PostgreSQL\16\data\pg_hba.conf` |
-| 数据库凭据 | user=`sub2api`, password=`sub2api`, dbname=`sub2api` |
-| 超级用户 | user=`postgres`, password=`postgres` |
+```bash
+# PostgreSQL 16
+docker run -d --name apipool-postgres \
+  -e POSTGRES_USER=sub2api \
+  -e POSTGRES_PASSWORD=sub2api \
+  -e POSTGRES_DB=sub2api \
+  -p 5432:5432 \
+  postgres:16-alpine
 
-### Redis
+# Redis 7
+docker run -d --name apipool-redis \
+  -p 6379:6379 \
+  redis:7-alpine
+```
 
-| 配置项 | 值 |
-|--------|-----|
-| 端口 | 6379 |
-| 密码 | 无 |
+### 本地测试环境凭据
+
+| 服务 | 配置项 | 值 |
+|------|--------|-----|
+| **PostgreSQL** | 容器名 | `apipool-postgres` |
+| | 端口 | `5432` |
+| | 用户 | `sub2api` |
+| | 密码 | `sub2api` |
+| | 数据库 | `sub2api` |
+| **Redis** | 容器名 | `apipool-redis` |
+| | 端口 | `6379` |
+| | 密码 | 无 |
+| **后端** | 端口 | `8080` |
+| | 模式 | `debug` |
+| **前端** | 端口 | `3000`（Vite 开发服务器） |
+| | 代理 | `/api`、`/setup` → `localhost:8080` |
+| **管理员** | 邮箱 | `admin@apipool.local` |
+| | 密码 | 首次安装向导时设置 |
+
+### 启动开发
+
+```bash
+# 1. 启动 Docker 基础服务
+docker start apipool-postgres apipool-redis
+
+# 2. 启动后端（需要设置环境变量）
+cd backend
+DATABASE_HOST=127.0.0.1 DATABASE_PORT=5432 \
+DATABASE_USER=sub2api DATABASE_PASSWORD=sub2api DATABASE_DBNAME=sub2api \
+REDIS_HOST=127.0.0.1 REDIS_PORT=6379 \
+SERVER_MODE=debug \
+go run ./cmd/server/
+
+# 3. 启动前端（另开终端）
+cd frontend
+npm install
+npm run dev
+```
+
+> **首次启动说明**：后端首次启动会进入安装向导（Setup Wizard），通过前端页面 `http://localhost:3000` 完成数据库配置和管理员账号设置。完成后后端自动重启进入正常模式。
 
 ### 开发工具
 
 ```bash
 # golangci-lint v2.7
 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7
-
-# pnpm (前端包管理)
-npm install -g pnpm
 ```
 
 ## 三、CI/CD 流水线
@@ -47,14 +86,15 @@ npm install -g pnpm
 
 | Workflow | 触发条件 | 检查内容 |
 |----------|----------|----------|
+| **deploy.yml** | push to main | SSH 部署到 DigitalOcean |
 | **backend-ci.yml** | push, pull_request | 单元测试 + 集成测试 + golangci-lint v2.7 |
 | **security-scan.yml** | push, pull_request, 每周一 | govulncheck + gosec + pnpm audit |
-| **release.yml** | tag `v*` | 构建发布（PR 不触发） |
+| **release.yml** | tag `v*` | 构建发布 |
 
 ### CI 要求
 
 - Go 版本必须是 **1.25.7**
-- 前端使用 `pnpm install --frozen-lockfile`，必须提交 `pnpm-lock.yaml`
+- 前端 CI 使用 `pnpm install --frozen-lockfile`，需提交 `pnpm-lock.yaml`
 
 ### 本地测试命令
 
@@ -67,9 +107,6 @@ cd backend && go test -tags=integration ./...
 
 # 代码质量检查
 cd backend && golangci-lint run ./...
-
-# 前端依赖安装（必须用 pnpm）
-cd frontend && pnpm install
 ```
 
 ## 四、常见坑点 & 解决方案
@@ -97,65 +134,13 @@ git commit -m "chore: update pnpm-lock.yaml"
 **解决**：
 ```bash
 cd frontend
-rm -rf node_modules  # 或 PowerShell: Remove-Item -Recurse -Force node_modules
+rm -rf node_modules
 pnpm install
 ```
 
 ---
 
-### 坑 3：PowerShell 中 bcrypt hash 的 `$` 被转义
-
-**问题**：bcrypt hash 格式如 `$2a$10$xxx...`，PowerShell 把 `$2a` 当变量解析，导致数据丢失。
-
-**解决**：将 SQL 写入文件，用 `psql -f` 执行：
-```bash
-# 错误示范（PowerShell 会吃掉 $）
-psql -c "INSERT INTO users ... VALUES ('$2a$10$...')"
-
-# 正确做法
-echo "INSERT INTO users ... VALUES ('\$2a\$10\$...')" > temp.sql
-psql -U sub2api -h 127.0.0.1 -d sub2api -f temp.sql
-```
-
----
-
-### 坑 4：psql 不支持中文路径
-
-**问题**：`psql -f "D:\中文路径\file.sql"` 报错找不到文件。
-
-**解决**：复制到纯英文路径再执行：
-```bash
-cp "D:\中文路径\file.sql" "C:\temp.sql"
-psql -f "C:\temp.sql"
-```
-
----
-
-### 坑 5：PostgreSQL 密码重置流程
-
-**场景**：忘记 PostgreSQL 密码。
-
-**步骤**：
-1. 修改 `C:\Program Files\PostgreSQL\16\data\pg_hba.conf`
-   ```
-   # 将 scram-sha-256 改为 trust
-   host    all    all    127.0.0.1/32    trust
-   ```
-2. 重启 PostgreSQL 服务
-   ```powershell
-   Restart-Service postgresql-x64-16
-   ```
-3. 无密码登录并重置
-   ```bash
-   psql -U postgres -h 127.0.0.1
-   ALTER USER sub2api WITH PASSWORD 'sub2api';
-   ALTER USER postgres WITH PASSWORD 'postgres';
-   ```
-4. 改回 `scram-sha-256` 并重启
-
----
-
-### 坑 6：Go interface 新增方法后 test stub 必须补全
+### 坑 3：Go interface 新增方法后 test stub 必须补全
 
 **问题**：给 interface 新增方法后，编译报错 `does not implement interface (missing method XXX)`。
 
@@ -173,30 +158,7 @@ grep -r "type.*Mock.*struct" internal/
 
 ---
 
-### 坑 7：Windows 上 psql 连 localhost 的 IPv6 问题
-
-**问题**：psql 连 `localhost` 先尝试 IPv6 (::1)，可能报错后再回退 IPv4。
-
-**建议**：直接用 `127.0.0.1` 代替 `localhost`。
-
----
-
-### 坑 8：Windows 没有 make 命令
-
-**问题**：CI 里用 `make test-unit`，本地 Windows 没有 make。
-
-**解决**：直接用 Makefile 里的原始命令：
-```bash
-# 代替 make test-unit
-go test -tags=unit ./...
-
-# 代替 make test-integration
-go test -tags=integration ./...
-```
-
----
-
-### 坑 9：Ent Schema 修改后必须重新生成
+### 坑 4：Ent Schema 修改后必须重新生成
 
 **问题**：修改 `ent/schema/*.go` 后，代码不生效。
 
@@ -209,7 +171,21 @@ git add ent/       # 生成的文件也要提交
 
 ---
 
-### 坑 10：PR 提交前检查清单
+### 坑 5：VERSION 文件必须与上游 tag 同步
+
+**问题**：合并上游代码后，网站持续提示有新版本。
+
+**原因**：`backend/cmd/server/VERSION` 通过 `//go:embed` 嵌入二进制，前端比较 `currentVersion` 与 GitHub 最新 release 的 `latestVersion`。
+
+**解决**：合并上游后检查最新 tag 并更新 VERSION 文件：
+```bash
+git tag --sort=-v:refname | head -1
+echo "0.1.83" > backend/cmd/server/VERSION
+```
+
+---
+
+### 坑 6：PR 提交前检查清单
 
 提交 PR 前务必本地验证：
 
@@ -222,20 +198,23 @@ git add ent/       # 生成的文件也要提交
 
 ## 五、常用命令速查
 
-### 数据库操作
+### Docker 服务管理
 
 ```bash
-# 连接数据库
-psql -U sub2api -h 127.0.0.1 -d sub2api
+# 启动基础服务
+docker start apipool-postgres apipool-redis
 
-# 查看所有用户
-psql -U postgres -h 127.0.0.1 -c "\du"
+# 停止基础服务
+docker stop apipool-postgres apipool-redis
 
-# 查看所有数据库
-psql -U postgres -h 127.0.0.1 -c "\l"
+# 查看容器状态
+docker ps --filter "name=apipool"
 
-# 执行 SQL 文件
-psql -U sub2api -h 127.0.0.1 -d sub2api -f migration.sql
+# 连接 PostgreSQL
+docker exec -it apipool-postgres psql -U sub2api -d sub2api
+
+# 连接 Redis
+docker exec -it apipool-redis redis-cli
 ```
 
 ### Git 操作
@@ -245,36 +224,39 @@ psql -U sub2api -h 127.0.0.1 -d sub2api -f migration.sql
 git fetch upstream
 git checkout main
 git merge upstream/main
+
+# 更新 VERSION 后提交
+echo "x.y.z" > backend/cmd/server/VERSION
+git add backend/cmd/server/VERSION
+git commit -m "chore: update version to x.y.z"
 git push origin main
-
-# 创建功能分支
-git checkout -b feature/xxx
-
-# Rebase 到最新 main
-git fetch upstream
-git rebase upstream/main
 ```
 
 ### 前端操作
 
 ```bash
-# 安装依赖（必须用 pnpm）
 cd frontend
-pnpm install
+
+# 安装依赖
+npm install
 
 # 开发服务器
-pnpm dev
+npm run dev
 
-# 构建
-pnpm build
+# 构建（输出到 backend/internal/web/dist）
+npm run build
 ```
 
 ### 后端操作
 
 ```bash
-# 运行服务器
 cd backend
+
+# 运行服务器
 go run ./cmd/server/
+
+# 嵌入前端构建
+go build -tags embed -o apipool ./cmd/server
 
 # 生成 Ent 代码
 go generate ./ent
@@ -290,34 +272,36 @@ golangci-lint run ./...
 ## 六、项目结构速览
 
 ```
-sub2api-bmai/
+sub2api/
 ├── backend/
-│   ├── cmd/server/          # 主程序入口
+│   ├── cmd/server/          # 主程序入口 + VERSION 文件
 │   ├── ent/                 # Ent ORM 生成代码
 │   │   └── schema/          # 数据库 Schema 定义
 │   ├── internal/
 │   │   ├── handler/         # HTTP 处理器
 │   │   ├── service/         # 业务逻辑
 │   │   ├── repository/      # 数据访问层
-│   │   └── server/          # 服务器配置
-│   ├── migrations/          # 数据库迁移脚本
-│   └── config.yaml          # 配置文件
+│   │   ├── config/          # 配置管理
+│   │   ├── setup/           # 安装向导
+│   │   └── server/          # 服务器 & 中间件
+│   └── migrations/          # 数据库迁移脚本
 ├── frontend/
 │   ├── src/
 │   │   ├── api/             # API 调用
 │   │   ├── components/      # Vue 组件
 │   │   ├── views/           # 页面视图
-│   │   ├── types/           # TypeScript 类型
-│   │   └── i18n/            # 国际化
-│   ├── package.json         # 依赖配置
-│   └── pnpm-lock.yaml       # pnpm 锁文件（必须提交）
-└── .claude/
-    └── CLAUDE.md            # 本文档
+│   │   ├── stores/          # Pinia 状态管理
+│   │   ├── i18n/            # 国际化（中/英）
+│   │   └── router/          # 路由配置
+│   └── package.json
+├── deploy/                  # 部署配置（Docker Compose / systemd / Caddy）
+├── .github/workflows/       # CI/CD
+└── CLAUDE.md                # Claude Code 项目指令
 ```
 
 ## 七、参考资源
 
 - [上游仓库](https://github.com/Wei-Shaw/sub2api)
 - [Ent 文档](https://entgo.io/docs/getting-started)
-- [Vue3 文档](https://vuejs.org/)
-- [pnpm 文档](https://pnpm.io/)
+- [Vue 3 文档](https://vuejs.org/)
+- [Vite 文档](https://vite.dev/)

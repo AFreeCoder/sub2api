@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	dataType       = "sub2api-data"
-	legacyDataType = "sub2api-bundle"
+	dataType       = "apipool-data"
+	legacyDataType = "apipool-bundle"
 	dataVersion    = 1
 	dataPageCap    = 1000
 )

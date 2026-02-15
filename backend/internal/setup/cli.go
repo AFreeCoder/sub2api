@@ -231,7 +231,7 @@ func RunCLI() error {
 	fmt.Println("╚═══════════════════════════════════════════╝")
 	fmt.Println()
 	fmt.Println("Start the server with:")
-	fmt.Println("  ./sub2api")
+	fmt.Println("  ./apipool")
 	fmt.Println()
 	fmt.Printf("Admin panel: http://localhost:%d\n", cfg.Server.Port)
 	fmt.Println()
